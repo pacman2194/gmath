@@ -4,9 +4,9 @@ It's a graph analysis tool using custom made graphs to analyze dependency graphs
 gmath is a simple tool to provide dependency resolution orders and find minimum cut - maximum flows in flow networks.
 
 ## Current Features
--------------------
-###  GRAPH
----------------
+
+###  dependency graph
+
 create graph
 
 display basic graph attributes
@@ -21,8 +21,8 @@ commented code
 
 
 
-### UI
-----------
+### ui
+
 open/save graphs
 
 exit with safety checker
