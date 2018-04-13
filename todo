@@ -1,0 +1,15 @@
+###  FLOW  ###
+--------------
+create flow data structure
+
+datastructure p410
+
+use contraction to create single source?
+
+
+
+###  UI  ###
+------------
+recomment
+
+[x.strip() for x in "2.MATCHES $$TEXT$$ STRING".split("->")]
