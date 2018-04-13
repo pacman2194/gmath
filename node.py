@@ -25,7 +25,7 @@ class Node(object):
         result = "Vertex: " + self.__name
         edges = []
         for neighbor in self.__adj_dict:
-            edges.append(self.__name + " -> " + neighbor + " " + str(self.__adj_dict[neighbor]))
+            edges.append(self.__name + " -(" + str(self.__adj_dict[neighbor]) + ")-> " + neighbor)
         if len(self.__adj_dict) > 0:
             result = result + "\nAdjacency List: " + ", ".join(edges)
         return result
