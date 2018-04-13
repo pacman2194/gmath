@@ -4,12 +4,10 @@ create flow data structure
 
 datastructure p410
 
-use contraction to create single source?
+use master node to handle multiple sources and potentially multiple sinks
 
 
 
 ###  UI  ###
 ------------
-recomment
-
-[x.strip() for x in "2.MATCHES $$TEXT$$ STRING".split("->")]
+Flow UI
