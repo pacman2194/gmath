@@ -8,12 +8,14 @@ from tkinter.ttk import Notebook
 from tkinter.ttk import Style
 import pickle
 from graph import Graph
+from flow import Flow
 
 class App(tk.Frame):
     def __init__(self, master):
         #graph object and changed variable to keep track of save-state
         self.graphObj = Graph()
-        self.changed = 0
+        self.flowObj = Flow()
+        self.changed = []
 
         #get the application window, set title and basic attributes
         tk.Frame.__init__(self, master, background="#1d1d1d")
@@ -217,14 +219,13 @@ class App(tk.Frame):
                 self.vertex_list.delete(0, 'end')
                 for e in self.graphObj.vertices():
                     self.vertex_list.insert(tk.END, str(e))
-                self.changed = 1
+                self.changed.append('dpg')
                 self.dependency_entry.delete(0, 'end')
                 self.dependent_entry.delete(0, 'end')
                 self.graphObj.is_cyclic()
                 self.edge_list.insert(tk.END, str(dependent_text)+" -> "+str(dependency_text))
                 self.update_output_labels()
                 self.change_button_state()
-                print(self.graphObj)
         
     def remove_edge(self, event=None):
         ''' simple remove edge from graph '''
@@ -235,14 +236,13 @@ class App(tk.Frame):
                 self.edge_list.delete(0, 'end')
                 for e in self.graphObj.edges():
                     self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
-                self.changed = 1
+                self.changed.append('dpg')
                 self.dependency_entry.delete(0, 'end')
                 self.dependent_entry.delete(0, 'end')
                 if not self.graphObj.is_cyclic():
                     self.topological_sort()
                 self.update_output_labels()
                 self.change_button_state()
-                print(self.graphObj)
 
     def remove_edge_list(self, event=None):
         ''' remove selected edges from edge list listbox '''
@@ -253,7 +253,7 @@ class App(tk.Frame):
             values.append([y[0].strip(), y[1].strip()])
         for e in values:
             if self.graphObj.remove_edge(e[0], e[1]):
-                self.changed = 1
+                self.changed.append('dpg')
                 self.graphObj.is_cyclic()
                 self.update_output_labels()
                 self.change_button_state()
@@ -262,7 +262,6 @@ class App(tk.Frame):
             self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
         if not self.graphObj.cycle_detected():
             self.topological_sort()
-        print(self.graphObj)
 
     def add_vertex(self, event=None):
         ''' simple add vertex to graph '''
@@ -270,11 +269,10 @@ class App(tk.Frame):
         if vertex_text != "":
             if self.graphObj.add_vertex(vertex_text):
                 self.vertex_list.insert(tk.END, str(vertex_text))
-                self.changed = 1
+                self.changed.append('dpg')
                 self.vertex_entry.delete(0, 'end')
                 self.update_output_labels()
                 self.change_button_state()
-                print(self.graphObj)
 
     def remove_vertex(self, event=None):
         ''' simple remove vertex from graph '''
@@ -287,20 +285,19 @@ class App(tk.Frame):
                 self.vertex_list.delete(0, 'end')
                 for e in self.graphObj.vertices():
                     self.vertex_list.insert(tk.END, str(e))
-                self.changed = 1
+                self.changed.append('dpg')
                 self.vertex_entry.delete(0, 'end')
                 if not self.graphObj.is_cyclic():
                     self.topological_sort()
                 self.update_output_labels()
                 self.change_button_state()
-                print(self.graphObj)
 
     def remove_vertex_list(self, event=None):
         ''' removes all selected vertices from vertex listbox '''
         values = [self.vertex_list.get(x).strip() for x in self.vertex_list.curselection()]
         for v in values:
             if self.graphObj.remove_vertex(v):
-                self.changed = 1
+                self.changed.append('dpg')
                 self.graphObj.is_cyclic()
                 self.update_output_labels()
                 self.change_button_state()
@@ -312,25 +309,23 @@ class App(tk.Frame):
             self.vertex_list.insert(tk.END, str(e))
         if not self.graphObj.cycle_detected():
             self.topological_sort()
-        print(self.graphObj)
 
     def topological_sort(self):
         ''' outputs the topological sort in scrollable listbox in order '''
-        if self.changed == 1:
+        if not self.graphObj.cycle_detected():
             self.top_sort_list.delete(0, 'end')
             for v in self.graphObj.topological_sort():
                 self.top_sort_list.insert(tk.END, str(v))
-            print('ah')
 
     def click_exit(self, event=None):
         ''' exit program safely by asking if they want to save changes '''
-        if self.changed == 0:
+        if len(self.changed) == 0:
             self.master.destroy()
         else:
             result = askokcancel("Python","Would you like to save your changes?")
             while result == True:
                 self.menu_save()
-                if self.changed == 1:
+                if len(self.changed) > 0:
                     result = askokcancel("Python","Would you like to save your changes?")
                 else:
                     result = False
@@ -339,33 +334,43 @@ class App(tk.Frame):
     def menu_save(self, event=None):
         ''' opens a "save as" dialog to save the graph '''
         filename = asksaveasfilename(initialdir = "/home/zorak/programs/python/graphical/testing",title = "Select file",defaultextension=".dpg", filetypes=(("Dependency Graph", "*.dpg"),("Flow Network", "*.flw"),("All Files", "*.*") ))
-        print(filename)
         try:
             with open(filename, 'wb') as output:
-                pickle.dump(self.graphObj, output, pickle.HIGHEST_PROTOCOL)
-                self.changed = 0
+                if filename[-3:] == 'dpg':
+                    pickle.dump(self.graphObj, output, pickle.HIGHEST_PROTOCOL)
+                    self.changed.remove('dpg')
+                elif filename[-3:] == 'flw':
+                    pickle.dump(self.flowObj, output, pickle.HIGHEST_PROTOCOL)
+                    self.changed.remove('flw')
         except:
             print("Something went terribly wrong")
 
     def menu_open(self, event=None):
         ''' opens an "open file" dialog to open a graph file '''
         filename = askopenfilename(initialdir = ".",title = "Select file",filetypes=(("Dependency Graph", "*.dpg"),("Flow Network", "*.flw"),("All Files", "*.*") ))
-        print(filename)
         try:
+            if filename[-3:] == 'dpg' and 'dpg' in self.changed:
+                result = askokcancel("Python","Would you like to save your changes?")
+                while result == True:
+                    self.menu_save()
+                    if len(self.changed) > 0:
+                        result = askokcancel("Python","Would you like to save your changes?")
+                    else:
+                        result = False
             with open(filename, 'rb') as inputf:
-                self.graphObj = pickle.load(inputf)
-                self.changed = 1
-                self.update_output_labels()
-                self.change_button_state()
-                self.vertex_list.delete(0, 'end')
-                for e in self.graphObj.vertices():
-                    self.vertex_list.insert(tk.END, str(e))
-                self.edge_list.delete(0, 'end')
-                for e in self.graphObj.edges():
-                    self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
-                self.topological_sort()
-                self.changed = 0
-                print(self.graphObj)
+                if filename[-3:] == 'dpg':
+                    self.graphObj = pickle.load(inputf)
+                    #self.changed.append('dpg')
+                    self.update_output_labels()
+                    self.change_button_state()
+                    self.vertex_list.delete(0, 'end')
+                    for e in self.graphObj.vertices():
+                        self.vertex_list.insert(tk.END, str(e))
+                    self.edge_list.delete(0, 'end')
+                    for e in self.graphObj.edges():
+                        self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
+                    self.topological_sort()
+                    self.changed = []
         except:
             print("Something went terribly wrong")
 
