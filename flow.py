@@ -98,10 +98,16 @@ class Flow(object):
             return True
         return False
 
+    def get_flow(self):
+        ''' returns the current max flow '''
+        return self.max
+
     def max_flow(self):
         ''' returns max flow through the flow network
             implemented using the Ford-Fulkerson algorithm
         '''
+        if (not (self.sources() and self.sinks())) or self.node_count < 2:
+            return False
         #create a deep copy for manipulating and this copy is a residual graph
         #the residual graph represents the graph with the remaining space until
         #maximum capacity
