@@ -273,7 +273,7 @@ class App(tk.Frame):
         self.node_list = tk.Listbox(node_list_frame, selectmode='multiple', selectbackground="#2ecc71", selectforeground="#222222", yscrollcommand=vertex_scrollbar.set, height=10, borderwidth=1)
         node_scrollbar.config(command=self.node_list.yview)
         node_scrollbar.pack(side="right", fill="y")
-        #self.node_list.bind("<Delete>", self.remove_node_list)
+        self.node_list.bind("<Delete>", self.remove_node_list)
         self.node_list.pack(side="left", fill="y", expand=1)
 
         #flow output frame
@@ -313,9 +313,6 @@ class App(tk.Frame):
         dependent_text = self.dependent_entry.get()
         if dependency_text != "" and dependent_text != "" and dependency_text != dependent_text:
             if self.graphObj.add_edge(dependent_text,dependency_text):
-                self.vertex_list.delete(0, 'end')
-                for e in self.graphObj.vertices():
-                    self.vertex_list.insert(tk.END, str(e))
                 if 'dpg' not in self.changed:
                     self.changed.append('dpg')
                 self.dependency_entry.delete(0, 'end')
@@ -324,6 +321,7 @@ class App(tk.Frame):
                 self.edge_list.insert(tk.END, str(dependent_text)+" -> "+str(dependency_text))
                 self.update_output_labels()
                 self.change_button_state()
+                self.update_dep_lists()
 
     def add_arc(self, event=None):
         '''  '''
@@ -350,17 +348,14 @@ class App(tk.Frame):
         dependent_text = self.dependent_entry.get()
         if dependency_text != "" and dependent_text != "":
             if self.graphObj.remove_edge(dependent_text,dependency_text):
-                self.edge_list.delete(0, 'end')
-                for e in self.graphObj.edges():
-                    self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
+                self.graphObj.is_cyclic()
                 if 'dpg' not in self.changed:
                     self.changed.append('dpg')
                 self.dependency_entry.delete(0, 'end')
                 self.dependent_entry.delete(0, 'end')
-                if not self.graphObj.is_cyclic():
-                    self.topological_sort()
                 self.update_output_labels()
                 self.change_button_state()
+                self.update_dep_lists()
 
     def remove_edge_list(self, event=None):
         ''' remove selected edges from edge list listbox '''
@@ -376,11 +371,10 @@ class App(tk.Frame):
                 self.graphObj.is_cyclic()
                 self.update_output_labels()
                 self.change_button_state()
-        self.edge_list.delete(0, 'end')
-        for e in self.graphObj.edges():
-            self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
-        if not self.graphObj.cycle_detected():
-            self.topological_sort()
+        self.graphObj.is_cyclic()
+        self.update_output_labels()
+        self.change_button_state()
+        self.update_dep_lists()
 
     def remove_arc(self, event=None):
         '''  '''
@@ -402,7 +396,6 @@ class App(tk.Frame):
     def remove_arc_list(self, event=None):
         '''  '''
         selections = [self.arc_list.get(x).split("-") for x in self.arc_list.curselection()]
-        print(selections)
         values = []
         for y in selections:
             values.append([y[0].strip(), y[2][1:].strip()])
@@ -443,19 +436,13 @@ class App(tk.Frame):
         vertex_text = self.vertex_entry.get()
         if vertex_text != "":
             if self.graphObj.remove_vertex(vertex_text):
-                self.edge_list.delete(0, 'end')
-                for e in self.graphObj.edges():
-                    self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
-                self.vertex_list.delete(0, 'end')
-                for e in self.graphObj.vertices():
-                    self.vertex_list.insert(tk.END, str(e))
                 if 'dpg' not in self.changed:
                     self.changed.append('dpg')
                 self.vertex_entry.delete(0, 'end')
-                if not self.graphObj.is_cyclic():
-                    self.topological_sort()
+                self.graphObj.is_cyclic()
                 self.update_output_labels()
                 self.change_button_state()
+                self.update_dep_lists()
 
     def remove_vertex_list(self, event=None):
         ''' removes all selected vertices from vertex listbox '''
@@ -467,14 +454,10 @@ class App(tk.Frame):
                 self.graphObj.is_cyclic()
                 self.update_output_labels()
                 self.change_button_state()
-        self.edge_list.delete(0, 'end')
-        for e in self.graphObj.edges():
-            self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
-        self.vertex_list.delete(0, 'end')
-        for e in self.graphObj.vertices():
-            self.vertex_list.insert(tk.END, str(e))
-        if not self.graphObj.cycle_detected():
-            self.topological_sort()
+        self.graphObj.is_cyclic()
+        self.update_output_labels()
+        self.change_button_state()
+        self.update_dep_lists()
 
     def remove_node(self, event=None):
         '''  '''
@@ -485,6 +468,17 @@ class App(tk.Frame):
                 if 'flw' not in self.changed:
                     self.changed.append('flw')
                 self.node_entry.delete(0, 'end')
+                self.change_button_state()
+                self.update_flow_lists()
+
+    def remove_node_list(self, event=None):
+        '''  '''
+        values = [self.node_list.get(x).strip() for x in self.node_list.curselection()]
+        for v in values:
+            if self.flowObj.remove_node(v):
+                if 'flw' not in self.changed:
+                    self.changed.append('flw')
+                self.update_flow_labels()
                 self.change_button_state()
                 self.update_flow_lists()
 
@@ -555,13 +549,7 @@ class App(tk.Frame):
                     self.graphObj = pickle.load(inputf)
                     self.update_output_labels()
                     self.change_button_state()
-                    self.vertex_list.delete(0, 'end')
-                    for e in self.graphObj.vertices():
-                        self.vertex_list.insert(tk.END, str(e))
-                    self.edge_list.delete(0, 'end')
-                    for e in self.graphObj.edges():
-                        self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
-                    self.topological_sort()
+                    self.update_dep_lists()
                     if 'dpg' in self.changed:
                         self.changed.remove('dpg')
                 elif filename[-3:] == 'flw':
@@ -574,7 +562,18 @@ class App(tk.Frame):
         except:
             print("Something went terribly wrong")
 
+    def update_dep_lists(self):
+        '''  '''
+        self.vertex_list.delete(0, 'end')
+        for e in self.graphObj.vertices():
+            self.vertex_list.insert(tk.END, str(e))
+        self.edge_list.delete(0, 'end')
+        for e in self.graphObj.edges():
+            self.edge_list.insert(tk.END, str(e[0])+" -> "+str(e[1]))
+        self.topological_sort()
+
     def update_flow_lists(self):
+        '''  '''
         self.node_list.delete(0, 'end')
         for e in self.flowObj.nodes():
             self.node_list.insert(tk.END, str(e))
