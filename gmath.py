@@ -324,7 +324,7 @@ class App(tk.Frame):
                 self.update_dep_lists()
 
     def add_arc(self, event=None):
-        '''  '''
+        '''  add an arc to the flow '''
         arc_node_text = self.arc_node_entry.get()
         arc_neighbor_text = self.arc_neighbor_entry.get()
         arc_capacity_text = self.arc_capacity_entry.get()
